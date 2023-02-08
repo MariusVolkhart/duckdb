@@ -2918,6 +2918,61 @@ public class TestDuckDBJDBC {
 		} 
 	}
 
+	/**
+	 * INSERT...RETURNING on a table with an UINTEGER column returns an incorrect column count.
+	 */
+	public static void test_returning_uinteger_multiple_columns() throws Exception {
+		try (Connection conn = DriverManager.getConnection("jdbc:duckdb:")) {
+			try (Statement stmt = conn.createStatement()) {
+				stmt.execute("CREATE SEQUENCE Test_PK");
+				stmt.execute("CREATE TABLE Test(Id INTEGER DEFAULT(nextval('Test_PK')), Col1 UINTEGER, Col2 VARCHAR)");
+			}
+			// UINTEGER column as part of the RETURNING clause
+			try (PreparedStatement stmt = conn.prepareStatement("INSERT INTO Test(Col1, Col2) VALUES(?, ?) RETURNING Id, Col1")) {
+				stmt.setInt(1, 5);
+				stmt.setString(2, "Data");
+
+				try (ResultSet rs = stmt.executeQuery()) {
+					rs.next();
+					assertEquals(rs.getInt(1), 1);
+					assertEquals(rs.getInt(2), 5);
+				}
+			}
+
+			// UINTEGER column missing from the RETURNING clause
+			try (PreparedStatement stmt = conn.prepareStatement("INSERT INTO Test(Col1, Col2) VALUES(?, ?) RETURNING Id, Col2")) {
+				stmt.setInt(1, 5);
+				stmt.setString(2, "Data");
+
+				try (ResultSet rs = stmt.executeQuery()) {
+					rs.next();
+					assertEquals(rs.getInt(1), 2);
+					assertEquals(rs.getString(2), "Data");
+				}
+			}
+		}
+	}
+
+	/**
+	 * INSERT...RETURNING returns wrong value for UINTEGER column.
+	 */
+	public static void test_returning_uinteger_single_column() throws Exception {
+		try (Connection conn = DriverManager.getConnection("jdbc:duckdb:")) {
+			try (Statement stmt = conn.createStatement()) {
+				stmt.execute("CREATE SEQUENCE Test_PK START 101");
+				stmt.execute("CREATE TABLE Test(Id INTEGER DEFAULT(nextval('Test_PK')), Col1 UINTEGER)");
+			}
+			try (PreparedStatement stmt = conn.prepareStatement("INSERT INTO Test(Col1) VALUES(?) RETURNING Col1")) {
+				stmt.setInt(1, 5);
+
+				try (ResultSet rs = stmt.executeQuery()) {
+					rs.next();
+					assertEquals(rs.getInt(1), 5);
+				}
+			}
+		}
+	}
+
 	public static void main(String[] args) throws Exception {
 		// Woo I can do reflection too, take this, JUnit!
 		Method[] methods = TestDuckDBJDBC.class.getMethods();
