@@ -83,6 +83,11 @@ public class DuckDBResultSet implements ResultSet {
 			finished = true;
 			return false;
 		}
+
+		// Checks throughout are done against meta.column_count. However, that only works if it is guaranteed that the meta
+		// represents the reality of the data. Since a violation of this constraint is a library bug not a programmer error,
+		// use an assert.
+		assert current_chunk.length == meta.column_count: "Available chunks don't match Meta column-count";
 		return true;
 	}
 

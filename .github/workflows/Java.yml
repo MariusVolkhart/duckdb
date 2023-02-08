@@ -52,7 +52,7 @@ jobs:
       - name: Java Tests
         shell: bash
         run: >
-          java -cp build/release/tools/jdbc/duckdb_jdbc.jar
+          java -ea -cp build/release/tools/jdbc/duckdb_jdbc.jar
           org.duckdb.test.TestDuckDBJDBC
       - name: Java Example
         shell: bash
