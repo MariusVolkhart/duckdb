@@ -767,8 +767,8 @@ public class DuckDBDatabaseMetaData implements DatabaseMetaData {
 		ResultSet rs = gunky_statement
 				.executeQuery("SELECT DISTINCT data_type FROM information_schema.columns ORDER BY data_type");
 		while (rs.next()) {
-			values_str += ", ('" + rs.getString(1) + "', " + Integer.toString(
-					DuckDBResultSetMetaData.type_to_int(DuckDBResultSetMetaData.TypeNameToType(rs.getString(1)))) + ")";
+			DuckDBColumnType type = DuckDBResultSetMetaData.TypeNameToType(rs.getString(1));
+			values_str += ", ('" + rs.getString(1) + "', " + type.typeCode + ")";
 		}
 		rs.close();
 		gunky_statement.close();

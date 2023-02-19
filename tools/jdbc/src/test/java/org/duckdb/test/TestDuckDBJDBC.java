@@ -447,8 +447,6 @@ public class TestDuckDBJDBC {
 		assertTrue(((OffsetDateTime) rs.getObject(2)).isEqual(odt2Rounded));
 
 		// Metadata tests
-		assertEquals(Types.TIMESTAMP_WITH_TIMEZONE,
-				((DuckDBResultSetMetaData) meta).type_to_int(DuckDBColumnType.TIMESTAMP_WITH_TIME_ZONE));
 		assertTrue(OffsetDateTime.class.toString().equals(meta.getColumnClassName(2)));
 
 		rs.close();
@@ -1058,7 +1056,6 @@ public class TestDuckDBJDBC {
 		rs2.close();
 
 		// Metadata tests
-		assertEquals(Types.DECIMAL, meta.type_to_int(DuckDBColumnType.DECIMAL));
 		assertTrue(BigDecimal.class.toString().equals(meta.getColumnClassName(1)));
 		assertTrue(BigDecimal.class.toString().equals(meta.getColumnClassName(2)));
 		assertTrue(BigDecimal.class.toString().equals(meta.getColumnClassName(3)));

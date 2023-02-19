@@ -92,63 +92,11 @@ public class DuckDBResultSetMetaData implements ResultSetMetaData {
 		return column_names[column - 1];
 	}
 
-	public static int type_to_int(DuckDBColumnType type) throws SQLException {
-		switch (type) {
-		case BOOLEAN:
-			return Types.BOOLEAN;
-		case TINYINT:
-			return Types.TINYINT;
-		case SMALLINT:
-			return Types.SMALLINT;
-		case INTEGER:
-			return Types.INTEGER;
-		case BIGINT:
-			return Types.BIGINT;
-		case LIST:
-			return Types.ARRAY;
-		case ENUM:
-		case HUGEINT:
-		case UTINYINT:
-		case USMALLINT:
-		case STRUCT:
-		case UUID:
-		case JSON:
-		case UINTEGER:
-		case UBIGINT:
-		case INTERVAL:
-		case MAP:
-			return Types.JAVA_OBJECT;
-		case FLOAT:
-			return Types.FLOAT;
-		case DOUBLE:
-			return Types.DOUBLE;
-		case DECIMAL:
-			return Types.DECIMAL;
-		case VARCHAR:
-			return Types.VARCHAR;
-		case TIME:
-			return Types.TIME;
-		case DATE:
-			return Types.DATE;
-		case TIMESTAMP_S:
-		case TIMESTAMP_MS:
-		case TIMESTAMP:
-		case TIMESTAMP_NS:
-			return Types.TIMESTAMP;
-		case TIMESTAMP_WITH_TIME_ZONE:
-			return Types.TIMESTAMP_WITH_TIMEZONE;
-		case BLOB:
-			return Types.BLOB;
-		default:
-			throw new SQLException("Unsupported type " + type);
-		}
-	}
-
 	public int getColumnType(int column) throws SQLException {
 		if (column > column_count) {
 			throw new SQLException("Column index out of bounds");
 		}
-		return type_to_int(column_types.get(column - 1));
+		return column_types.get(column - 1).typeCode;
 	}
 
 	public String getColumnClassName(int column) throws SQLException {
