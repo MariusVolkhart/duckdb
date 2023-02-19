@@ -151,7 +151,7 @@ public class DuckDBResultSet implements ResultSet {
 		if (was_null) {
 			return null;
 		}
-		switch (meta.column_types[columnIndex - 1]) {
+		switch (meta.column_types.get(columnIndex - 1)) {
 		case BOOLEAN:
 			return getBoolean(columnIndex);
 		case TINYINT:
@@ -233,7 +233,7 @@ public class DuckDBResultSet implements ResultSet {
 	}
 
 	private boolean isType(int columnIndex, DuckDBColumnType type) {
-		return meta.column_types[columnIndex - 1] == type;
+		return meta.column_types.get(columnIndex - 1) == type;
 	}
 
 	public String getString(int columnIndex) throws SQLException {
@@ -744,23 +744,24 @@ public class DuckDBResultSet implements ResultSet {
 			return null;
 		}
 		if (isType(columnIndex, DuckDBColumnType.DECIMAL)) {
-			switch (meta.column_types_meta[columnIndex - 1].type_size) {
+			DuckDBColumnTypeMetaData columnTypeMetaData = meta.column_types_meta.get(columnIndex - 1);
+			switch (columnTypeMetaData.type_size) {
 			case 16:
 				return new BigDecimal((int) getbuf(columnIndex, 2).getShort())
-						.scaleByPowerOfTen(meta.column_types_meta[columnIndex - 1].scale * -1);
+						.scaleByPowerOfTen(columnTypeMetaData.scale * -1);
 			case 32:
 				return new BigDecimal(getbuf(columnIndex, 4).getInt())
-						.scaleByPowerOfTen(meta.column_types_meta[columnIndex - 1].scale * -1);
+						.scaleByPowerOfTen(columnTypeMetaData.scale * -1);
 			case 64:
 				return new BigDecimal(getbuf(columnIndex, 8).getLong())
-						.scaleByPowerOfTen(meta.column_types_meta[columnIndex - 1].scale * -1);
+						.scaleByPowerOfTen(columnTypeMetaData.scale * -1);
 			case 128:
 				ByteBuffer buf = getbuf(columnIndex, 16);
 				long lower = buf.getLong();
 				long upper = buf.getLong();
 				return new BigDecimal(upper).multiply(ULONG_MULTIPLIER)
 						.add(new BigDecimal(Long.toUnsignedString(lower)))
-						.scaleByPowerOfTen(meta.column_types_meta[columnIndex - 1].scale * -1);
+						.scaleByPowerOfTen(columnTypeMetaData.scale * -1);
 			}
 		}
 		Object o = getObject(columnIndex);
@@ -1329,7 +1330,7 @@ public class DuckDBResultSet implements ResultSet {
 			throw new SQLException("type is null");
 		}
 
-		DuckDBColumnType sqlType = meta.column_types[columnIndex - 1];
+		DuckDBColumnType sqlType = meta.column_types.get(columnIndex - 1);
 		// Missing: unsigned types like UINTEGER, more liberal casting, e.g. SMALLINT ->
 		// Integer
 		// Compare results with expected results from Javadoc

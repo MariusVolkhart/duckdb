@@ -7,14 +7,18 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.ArrayList;
 import java.time.OffsetDateTime;
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.duckdb.DuckDBResultSet.DuckDBBlobResult;
 
 public class DuckDBResultSetMetaData implements ResultSetMetaData {
 
+	// Invoked reflectively from JNI
 	public DuckDBResultSetMetaData(int param_count, int column_count, String[] column_names,
 								   String[] column_types_string, String[] column_types_details, String return_type) {
 		this.param_count = param_count;
@@ -22,25 +26,25 @@ public class DuckDBResultSetMetaData implements ResultSetMetaData {
 		this.column_names = column_names;
 		this.return_type = StatementReturnType.valueOf(return_type);
 		this.column_types_string = column_types_string;
-		this.column_types_details = column_types_details;
-		ArrayList<DuckDBColumnType> column_types_al = new ArrayList<DuckDBColumnType>(column_count);
-		ArrayList<DuckDBColumnTypeMetaData> column_types_meta = new ArrayList<DuckDBColumnTypeMetaData>(column_count);
-
-		for (String column_type_string : this.column_types_string) {
-			column_types_al.add(TypeNameToType(column_type_string));
-		}
-		this.column_types = new DuckDBColumnType[column_count];
-		this.column_types = column_types_al.toArray(this.column_types);
-
-		for (String column_type_detail : this.column_types_details) {
-			if (!column_type_detail.equals("")) {
-				String[] split_details = column_type_detail.split(";");
-				column_types_meta.add(new DuckDBColumnTypeMetaData(Short.parseShort(split_details[0].replace("DECIMAL", ""))
-							, Short.parseShort(split_details[1]), Short.parseShort(split_details[2])));
-			}
-			else { column_types_meta.add(null); }
-		}
-		this.column_types_meta = column_types_meta.toArray(new DuckDBColumnTypeMetaData[column_count]);
+		this.column_types = Arrays.stream(column_types_string)
+				.map(DuckDBResultSetMetaData::TypeNameToType)
+				.collect(Collectors.toList());
+		this.column_types_meta = Arrays.stream(column_types_details)
+				.map(column_type_detail -> {
+					if (!column_type_detail.equals("")) {
+						String[] split_details = column_type_detail.split(";");
+						return new DuckDBColumnTypeMetaData(
+								// Use an explicit, pre-compiled Pattern since this gets called for every column of every ResultSet.
+								// Compiling regex is a non-trivial operation, and by avoiding String.replace(String, String) we speed
+								// things up.
+								Short.parseShort(DECIMAL.matcher(split_details[0]).replaceAll("")),
+								Short.parseShort(split_details[1]),
+								Short.parseShort(split_details[2])
+						);
+					}
+					else { return null; }
+				})
+				.collect(Collectors.toList());
 	}
 
 	public static DuckDBColumnType TypeNameToType(String type_name) {
@@ -59,13 +63,14 @@ public class DuckDBResultSetMetaData implements ResultSetMetaData {
 		}
 	}
 
+	private static final Pattern DECIMAL = Pattern.compile("DECIMAL", Pattern.LITERAL);
+
 	protected int param_count;
 	protected int column_count;
 	protected String[] column_names;
 	protected String[] column_types_string;
-	protected String[] column_types_details;
-	protected DuckDBColumnType[] column_types;
-	protected DuckDBColumnTypeMetaData[] column_types_meta;
+	final List<DuckDBColumnType> column_types;
+	final List<DuckDBColumnTypeMetaData> column_types_meta;
 	protected final StatementReturnType return_type;
 
 	public StatementReturnType getReturnType() {
@@ -143,7 +148,7 @@ public class DuckDBResultSetMetaData implements ResultSetMetaData {
 		if (column > column_count) {
 			throw new SQLException("Column index out of bounds");
 		}
-		return type_to_int(column_types[column - 1]);
+		return type_to_int(column_types.get(column - 1));
 	}
 
 	public String getColumnClassName(int column) throws SQLException {
@@ -272,6 +277,6 @@ public class DuckDBResultSetMetaData implements ResultSetMetaData {
 		if (columnIndex > column_count) {
 			throw new SQLException("Column index out of bounds");
 		}
-		return column_types_meta[columnIndex - 1];
+		return column_types_meta.get(columnIndex - 1);
 	}
 }
